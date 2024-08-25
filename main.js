@@ -18,13 +18,32 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
 directionalLight.position.set(10, 10, 10);
 scene.add(directionalLight);
 
+// カメラの初期位置を設定
+camera.position.set(5, 5, 5);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.update();
+
+let mixer;
+const clock = new THREE.Clock();
+
 // GLTFLoaderを使ってbuilding.glbを読み込む
 const loader = new GLTFLoader();
+const glb = 'building.glb';
 loader.load(
-    './building.glb',
+    glb,
     function (gltf) {
-        scene.add(gltf.scene);
-        gltf.scene.position.set(0, 0, 0);
+        const model = gltf.scene;
+        scene.add(model);
+        model.position.set(0, 0, 0);
+
+        const animations = gltf.animations;
+        if (animations && animations.length) {
+            mixer = new THREE.AnimationMixer(model);
+            const action = mixer.clipAction(animations[0]);
+            action.play();
+        }
     },
     undefined,
     function (error) {
@@ -32,23 +51,14 @@ loader.load(
     }
 );
 
-// カメラの初期位置を設定
-camera.position.z = 5;
-camera.position.y = 5;
-camera.position.x = 5;
-
-
-// カメラコントロールを追加
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; // 滑らかなカメラコントロール
-
 function animate() {
     requestAnimationFrame(animate);
 
-    // カメラコントロールの更新
+    if (mixer) {
+        mixer.update(clock.getDelta());
+    }
 
     controls.update();
-
     renderer.render(scene, camera);
 }
 
